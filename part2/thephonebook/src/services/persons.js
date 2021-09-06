@@ -17,8 +17,8 @@ const baseUrl = 'http://localhost:3001/persons'
   }
 
   const destroy = id => {
-    const request = axios.put(`${baseUrl}/${id}`)
-    return request.then(response => response.data);
+    const request = axios.delete(`${baseUrl}/${id}`)
+    return request
   }
 
   
