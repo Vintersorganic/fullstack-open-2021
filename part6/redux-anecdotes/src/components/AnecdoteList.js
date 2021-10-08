@@ -1,44 +1,51 @@
-import { useSelector, useDispatch } from 'react-redux'
+import { connect } from 'react-redux'
 import { increaseLikes } from '../reducers/anecdoteReducer'
 import { setNotification } from '../reducers/notificationReducer'
 import React from 'react'
 
 
-const AnecdoteList = () => {
-    const dispatch = useDispatch()
+const AnecdoteList = (props) => {
+  const voteId = (anecdote) => {
+      props.increaseLikes(anecdote)
+      props.setNotification(`you created ${anecdote.content} anecdote`, 5)
+  }
 
-    const anecdotes = useSelector( state => {
-      if (state.filter === '') {
-        return state.anecdotes
-      }
-      console.log(state.anecdotes[0], "MIRA ACA")
-      return state.anecdotes.filter(anecdote => anecdote.content.toLowerCase().search(state.filter.toLowerCase()) !== -1)
-      
-      }
-    )    
-    
-    console.log(useSelector(state => state))
-    const vote = (anecdote) => {
-        dispatch(increaseLikes(anecdote))
-        dispatch(setNotification(`you voted '${anecdote.content}'`, 5))
-    }
-
-    return (
-
-        <div>
-             {anecdotes.sort((a, b) => b.votes - a.votes).map(anecdote =>
-        <div key={anecdote.id}>
-          <div>
-            {anecdote.content}
-          </div>
-          <div>
-            has {anecdote.votes}
-            <button onClick={() => vote(anecdote)}>vote</button>
-          </div>
-        </div>
-      )}
-        </div>
-    )
+  return (
+      <div>
+          {props.anecdotes.map(anecdote =>
+              <div key={anecdote.id}>
+                  <div>
+                      {anecdote.content}
+                  </div>
+                  <div>
+                      has {anecdote.votes}
+                      <button onClick={() => voteId(anecdote)}>vote</button>
+                  </div>
+              </div>
+          )}
+      </div>
+  )
 }
 
-export default AnecdoteList
+const anecdotesToShow = ({ anecdotes, filter }) => {
+  const sortedAnecdotes = [...anecdotes].sort((a, b) => {
+      return b.votes - a.votes
+  })
+
+  if (filter === '') {
+      return sortedAnecdotes
+  } else {
+      return sortedAnecdotes.filter(e => e.content.toLowerCase().includes(filter.toLowerCase()))
+  }
+}
+
+const mapStateToProps = (state) => {
+  return {
+      anecdotes: anecdotesToShow(state),
+  }
+}
+
+export default connect(
+  mapStateToProps,
+  { increaseLikes, setNotification }
+)(AnecdoteList)

@@ -3,6 +3,7 @@ import React from 'react'
 
 const Notification = () => {
   const notification = useSelector(state => state.notifications)
+  
   const style = {
     border: 'solid',
     padding: 10,
