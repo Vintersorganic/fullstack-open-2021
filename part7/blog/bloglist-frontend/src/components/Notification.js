@@ -1,26 +1,6 @@
 import React from 'react'
 import { useSelector } from 'react-redux'
-
-const error = {
-  color: 'red',
-  background: 'lightgrey',
-  fontSize: 20,
-  borderStyle: 'solid',
-  borderRadius: 5,
-  padding: 10,
-  marginBottom: 10
-}
-
-const success = {
-  color: 'green',
-  background: 'lightgrey',
-  fontSize: 20,
-  borderStyle: 'solid',
-  borderRadius: 5,
-  padding: 10,
-  marginBottom: 10
-}
-
+import { Alert } from '@material-ui/lab'
 
 const Notification = () => {
   const notification = useSelector(state => state.notifications)
@@ -29,18 +9,18 @@ const Notification = () => {
     return null
   }
 
-  else if (notification.includes('Success')) {
+  else if (notification.includes('Success') || notification.includes('Welcome')) {
     return (
-      <div id='success' style={success}>
+      <Alert severity="success">
         {notification}
-      </div>
+      </Alert>
     )
   }
 
   return (
-    <div id='error' style={error}>
+    <Alert severity="danger">
       {notification}
-    </div>
+    </Alert>
   )
 }
 

@@ -64,4 +64,16 @@ router.post('/', async (request, response) => {
   response.status(201).json(savedBlog)
 })
 
+router.post('/:id/comments', async (req, res) => {
+  console.log(req.body, 'req.body')
+  const currentBlog = await Blog.findByIdAndUpdate(
+    req.params.id, 
+    {$push: {'comments': req.body.comments}}, 
+    {upsert: true, new : true})
+    
+  currentBlog.save()
+  res.status(200).json(currentBlog)
+
+})
+
 module.exports = router

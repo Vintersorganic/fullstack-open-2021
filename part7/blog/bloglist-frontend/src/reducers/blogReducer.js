@@ -11,6 +11,8 @@ const blogReducer = (state = [], action) => {
     return state.filter(blog => blog.id !== action.data)
   case 'INCREASE_LIKES':
     return state.map(blog => blog.id === action.data.id ? action.data : blog)
+  case 'ADD_COMMENT':
+    return state.map(blog => blog.id === action.data.id ? action.data : blog)
   default:
     return state
   }
@@ -57,6 +59,17 @@ export const blogUpdate = (blog) => {
     console.log(updatedBlog, 'updatedblog')
     dispatch({
       type: 'INCREASE_LIKES',
+      data: updatedBlog
+    })
+  }
+}
+
+export const addComments = (id, comment) => {
+  return async dispatch => {
+    console.log(id, comment, 'ASDASDASD')
+    const updatedBlog = await blogService.newComment(id, comment)
+    dispatch({
+      type: 'ADD_COMMENT',
       data: updatedBlog
     })
   }

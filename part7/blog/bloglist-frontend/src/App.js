@@ -1,76 +1,79 @@
-import React, { useState, useEffect } from 'react'
-import { useDispatch } from 'react-redux'
+import React, { useEffect } from 'react'
+import { useRouteMatch } from 'react-router-dom'
+import Container from '@material-ui/core/Container'
+import {
+  Switch, Route, Redirect
+} from 'react-router-dom'
+import { useDispatch, useSelector } from 'react-redux'
 import BlogList from './components/BlogList'
-import blogService from './services/blogs'
-import loginService from './services/login'
+import UserList from './components/UserList'
 import LoginForm from './components/LoginForm'
 import Notification from './components/Notification'
-import LogoutButton from './components/LogoutButton'
 import BlogCreation from './components/BlogCreation'
+import UserInfo from './components/UserInfo'
+import Navbar from './components/Navbar'
 import Togglable from './components/Togglable'
-import { setNotification } from './reducers/notificationReducer'
+import Blog from './components/Blog'
 import { initializeBlogs } from './reducers/blogReducer'
+import { initializeUser } from './reducers/loginReducer'
+import { initializeUsers } from './reducers/userReducer'
 
 const App = () => {
 
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
-  const [user, setUser] = useState(null)
   const dispatch = useDispatch()
+  const user = useSelector(state => state.user)
+  const blogs = useSelector(state => state.blogs)
+  const users = useSelector(state => state.users)
 
   useEffect(() => {
     dispatch(initializeBlogs())
+    dispatch(initializeUser())
+    dispatch(initializeUsers())
   }, [dispatch])
 
-  useEffect(() => {
-    const loggedUserJSON = window.localStorage.getItem('loggedBlogAppUser')
-    if (loggedUserJSON) {
-      const user = JSON.parse(loggedUserJSON)
-      setUser(user)
-      blogService.setToken(user.token)
-    }
-  }, [])
+  const blogMatch = useRouteMatch('/blogs/:id')
 
-  const handleLogin = async (event) => {
-    event.preventDefault()
-    try {
-      const user = await loginService.login({
-        username, password
-      })
+  const blog = blogMatch
+    ? blogs.find(blog => blog.id === blogMatch.params.id)
+    : null
 
-      window.localStorage.setItem(
-        'loggedBlogAppUser', JSON.stringify(user)
-      )
-      blogService.setToken(user.token)
-      setUser(user)
-      setUsername('')
-      setPassword('')
-    } catch (exception) {
-      dispatch(setNotification('Wrong credentials!', 3))
-    }
-  }
+  const userMatch = useRouteMatch('/users/:id')
+  const selectedUser = userMatch
+    ? users.find(user => user.id === userMatch.params.id)
+    : null
+
 
   return (
-    <div>
-      <h2>blogs</h2>
+
+    <Container>
+      <Navbar />
       <Notification />
-      {user !== null && <p>{user.name} logged in. <LogoutButton setUser={setUser}/></p> }
-      { user === null ?
-        <LoginForm
-          username={username}
-          password={password}
-          handleLogin={handleLogin}
-          setUsername={setUsername}
-          setPassword={setPassword}
-        /> :
-        <Togglable buttonLabel="create new blog" >
-          <BlogCreation/>
-        </Togglable>
-      }
-      <BlogList username={user ? user.username : ''}/>
-    </div>
+      <h2 style={{ textAlign: 'center' }}>Blog App</h2>
+      <Switch>
+        <Route path='/blogs/:id'>
+          <Blog blog={blog}/>
+        </Route>
+        <Route path='/users/:id'>
+          <UserInfo selectedUser={selectedUser}/>
+        </Route>
+        <Route path='/users'>
+          { user ? <UserList /> : <Redirect to="/" /> }
+        </Route>
+        <Route path='/'>
+          <h1 style={{ 'textAlign':'center' }}>Bloglist</h1>
+          { user === null ?
+            <LoginForm
+            /> :
+            <Togglable buttonLabel="create new blog" >
+              <BlogCreation />
+            </Togglable>
+          }
+          <BlogList username={user ? user.username : ''}/>
+        </Route>
+      </Switch>
+    </Container>
+
   )
 }
-
 
 export default App
