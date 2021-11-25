@@ -26,10 +26,11 @@ describe('when there is initially one user at db', () => {
       name: 'Matti Testaaja',
       password: 'salasana',
     }
-
+    
     await api
       .post('/api/users')
       .send(newUser)
+      .set({ Authorization: newUser. })
       .expect(200)
       .expect('Content-Type', /application\/json/)
 

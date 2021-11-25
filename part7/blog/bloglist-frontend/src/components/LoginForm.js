@@ -18,7 +18,6 @@ const LoginForm = () => {
     console.log(username, '|| username ||', password, '|| password ||')
     dispatch(login({ username, password }))
     dispatch(setNotification(`Welcome ${username}!`, 3))
-
   }
 
 

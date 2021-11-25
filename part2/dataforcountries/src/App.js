@@ -11,6 +11,7 @@ function App() {
     axios
     .get("https://restcountries.eu/rest/v2/all")
     .then(response => {
+      console.log(typeof response.data, "TYPPEOF");
       setCountries(response.data)
   })
   }, [])
