@@ -3,12 +3,12 @@ import React, { useState, useEffect } from "react";
 import { ALL_AUTHORS, EDIT_BORNYEAR } from "../queries";
 import Select from "react-select";
 
-const Authors = ({ authors, show, setError }) => {
+const Authors = ({ token, authors, show, setError }) => {
   const [born, setBorn] = useState("");
   const [selectedOption, setSelectedOption] = useState(null);
 
   const [changeBornYear, result] = useMutation(EDIT_BORNYEAR, {
-    refetchQueries: [ { query: ALL_AUTHORS } ]
+    refetchQueries: [{ query: ALL_AUTHORS }],
   });
 
   const submit = (event) => {
@@ -18,13 +18,13 @@ const Authors = ({ authors, show, setError }) => {
       return;
     }
 
-    changeBornYear({ variables: { name: selectedOption.value, setBornTo: born } });
+    changeBornYear({
+      variables: { name: selectedOption.value, setBornTo: born },
+    });
     setBorn("");
-    console.log(result, "RESULT");
   };
 
   useEffect(() => {
-    console.log(result.data, "result.data");
     if (result.data && result.data.editAuthor === null) {
       setError("person not found");
     }
@@ -58,23 +58,28 @@ const Authors = ({ authors, show, setError }) => {
         </tbody>
       </table>
 
-      <h2>Set birthyear</h2>
-      <form onSubmit={submit}>
-        <Select
-          options={options}
-          defaultValue={selectedOption}
-          onChange={setSelectedOption}
-        />
+      
+      {token ? (
         <div>
-          born
-          <input
-            value={born}
-            onChange={({ target }) => setBorn(+target.value)}
+        <h2>Set birthyear</h2>
+        <form onSubmit={submit}>
+          <Select
+            options={options}
+            defaultValue={selectedOption}
+            onChange={setSelectedOption}
           />
-        </div>
+          <div>
+            born
+            <input
+              value={born}
+              onChange={({ target }) => setBorn(+target.value)}
+            />
+          </div>
 
-        <button type="submit">update author</button>
-      </form>
+          <button type="submit">update author</button>
+        </form>
+        </div>
+      ) : null}
     </div>
   );
 };
