@@ -3,8 +3,8 @@ import Authors from "./components/Authors";
 import Books from "./components/Books";
 import NewBook from "./components/NewBook";
 import Login from './components/Login'
-import { useApolloClient, useQuery } from "@apollo/client";
-import { ALL_AUTHORS, ALL_BOOKS, ME} from "./queries";
+import { useApolloClient, useQuery, useSubscription  } from "@apollo/client";
+import { ALL_AUTHORS, ALL_BOOKS, ME, BOOK_ADDED} from "./queries";
 import Recommended from "./components/Recommended";
 
 
@@ -14,20 +14,47 @@ const App = () => {
   const [token, setToken] = useState(null)
 
   const allAuthorsResult = useQuery(ALL_AUTHORS);
-  const allBooksResult = useQuery(ALL_BOOKS);
+  const allBooksResult = useQuery(ALL_BOOKS)
   const userResult = useQuery(ME)
 
   const client = useApolloClient()
 
-  if (allAuthorsResult.loading || allBooksResult.loading)  {
-    return <div>loading...</div>
-  }
+  
 
   const logout = () => {
     setToken(null)
     localStorage.clear()
     client.resetStore()
   }
+
+  const updateCacheWith = (addedBook) => {
+    const includedIn = (set, object) => 
+      set.map(p => p.id).includes(object.id)  
+
+    const dataInStore = client.readQuery({ query: ALL_BOOKS })
+    console.log(dataInStore);
+    if (!includedIn(dataInStore.allBooks, addedBook)) {
+      client.writeQuery({
+        query: ALL_BOOKS,
+        data: { allBooks : dataInStore.allBooks.concat(addedBook) }
+      })
+    }   
+  }
+
+  useSubscription(BOOK_ADDED, {
+    onSubscriptionData: ({ subscriptionData }) => {
+      const addedBook = subscriptionData.data.bookAdded
+      console.log(addedBook)
+      window.alert(`Books list updated with new book: ${addedBook.title}`)
+      updateCacheWith(addedBook)
+    }
+  })
+
+  if (allAuthorsResult.loading || allBooksResult.loading )  {
+    return <div>loading...</div>
+  }
+
+  console.log(userResult);
 
   const genresArray = [].concat.apply([], allBooksResult.data.allBooks.map(book => book.genres))
   const filteredGenres = ['all genres']
@@ -44,6 +71,7 @@ const App = () => {
     }, 10000)
   }
 
+ 
   return (
     <div>
       <div>
@@ -61,7 +89,8 @@ const App = () => {
 
       <NewBook show={page === "add"} setError={notify}/>
       <Login show={page === "login"} setPage={setPage} setError={notify} setToken={setToken}/>
-      <Recommended show={page === 'recommended'} setPage={setPage} books={allBooksResult.data.allBooks} user={userResult.data}/>
+      {console.log(userResult)}
+      {userResult ? <Recommended show={page === 'recommended'} setPage={setPage} books={allBooksResult.data.allBooks} user={userResult.data}/> : null}
     </div>
   );
 };

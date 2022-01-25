@@ -5,6 +5,9 @@ const Author = require("./models/author");
 const User = require("./models/User");
 const mongoose = require("mongoose");
 const jwt = require('jsonwebtoken')
+const { PubSub } = require('graphql-subscriptions')
+const pubsub = new PubSub()
+
 
 const JWT_SECRET = 'NEED_HERE_A_SECRET_KEY'
 
@@ -19,14 +22,6 @@ mongoose
   .catch((error) => {
     console.log("error connection to MongoDB:", error.message);
   });
-
-
-
-/*
- * English:
- * It might make more sense to associate a book with its author by storing the author's name in the context of the book instead of the author's id
- * However, for simplicity, we will store the author's name in connection with the book
- */
 
 
 const typeDefs = gql`
@@ -49,9 +44,10 @@ const typeDefs = gql`
   }
 
   type Author {
-    name: String!
-    bookCount: Int!
+    name: String
+    bookCount: Int
     born: Int
+    id: ID!
   }
 
   type Query {
@@ -76,6 +72,11 @@ const typeDefs = gql`
 
     login(username: String!, password: String!): Token
   }
+
+  type Subscription {
+    bookAdded: Book!
+  }
+
 `;
 
 const resolvers = {
@@ -84,33 +85,28 @@ const resolvers = {
     authorCount: () => Author.collection.countDocuments(),
     allBooks: async (root, args) => {
       if (args.author && args.genre) {
-        return books.filter(
-          (book) =>
-            book.author === args.author && book.genres.includes(args.genre)
-        );
+        const author = await Author.findOne({ name: args.author })
+        console.log(author);
+        return await Book.find({
+            author: author._id,
+            genres: { $elemMatch: { $eq: args.genre } },
+          
+        }).populate('author')
       } else if (args.author) {
         return await Book.find({ author: args.author });
       } else if (args.genre) {
         return await Book.find({ genres: { $in: [args.genre] } });
       } else {
-        return Book.find({});
+        return Book.find({})
       }
+    
     },
     allAuthors: () => Author.find({}),
     me: (root, args, context) => {
-      console.log(context, 'CONTEXT');
       return context.currentUser
     }
   },
-  Author: {
-    bookCount: (root) => {
-      return books.reduce((acc, book) => {
-        if (book.author === root.name) acc += 1;
-
-        return acc;
-      }, 0);
-    },
-  },
+ 
   Mutation: {
     addBook: async (root, args, context) => {
       if (!context.currentUser) {
@@ -132,14 +128,24 @@ const resolvers = {
       let book = new Book({ ...args, author: author._id });
 
       try {
-        await book.save();
+        const bookCount = await Book.find({
+          author: author.id,
+        }).countDocuments()
+        await Author.findOneAndUpdate(
+          { name: author.name },
+          { bookCount: bookCount }
+        )
+        book = await book.populate('author').execPopulate()
+
       } catch (error) {
         throw new UserInputError(error.message, {
           invalidArgs: args,
         });
       }
 
-      return book.save();
+      pubsub.publish('BOOK_ADDED', { bookAdded: book })
+
+      return book
     },
     editAuthor: async (root, args, context) => {
       if (!context.currentUser) {
@@ -189,6 +195,12 @@ const resolvers = {
       return { value: jwt.sign(userForToken, JWT_SECRET) }
     },
   },
+  Subscription: {
+    bookAdded: {
+      subscribe: () => pubsub.asyncIterator(['BOOK_ADDED']),
+    },
+  },
+
 }
 
 const server = new ApolloServer({
@@ -207,6 +219,7 @@ const server = new ApolloServer({
 
 });
 
-server.listen().then(({ url }) => {
-  console.log(`Server ready at ${url}`);
-});
+server.listen().then(({ url, subscriptionsUrl }) => {
+  console.log(`Server ready at ${url}`)
+  console.log(`Subscriptions ready at ${subscriptionsUrl}`)
+})

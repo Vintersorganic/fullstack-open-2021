@@ -55,5 +55,27 @@ export const ME =  gql `
     favoriteGenre
   }
 }
+`
 
+const BOOK_DETAILS = gql`
+  fragment BookDetails on Book {
+    id
+    title
+    published
+    author {
+      name
+      born
+      bookCount
+    }
+    genres
+  }
+`
+
+export const BOOK_ADDED = gql`
+  subscription {
+    bookAdded {
+      ...BookDetails
+    }
+  }
+${BOOK_DETAILS}
 `
